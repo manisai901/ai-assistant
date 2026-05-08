@@ -1,0 +1,6 @@
+{
+  "name": "NVIDIA AI Assistant",
+  "description": "Powerful AI chat powered by NVIDIA Nemotron-3 Super 120B model.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["Natural Language Processing", "Code Generation"]
+}
