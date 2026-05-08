@@ -12,7 +12,10 @@ import {
   Cpu,
   ShieldCheck,
   ChevronRight,
-  Info
+  Info,
+  Github,
+  Mail,
+  ExternalLink
 } from "lucide-react";
 
 interface Message {
@@ -105,11 +108,15 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0b0c10] font-sans text-gray-100 overflow-hidden">
-      {/* Background Decorative Element */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#76b900]/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-blue-500/5 blur-[100px]" />
+    <div className="flex h-screen bg-[#0b0c10] font-sans text-gray-100 overflow-hidden relative">
+      {/* Background Decorative Element - Pleasant & Cool Animation */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-15%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#76b900]/5 blur-[120px] animate-slow-drift" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[100px] animate-slow-drift" style={{ animationDirection: 'reverse', animationDuration: '35s' }} />
+        <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-purple-500/5 blur-[130px] animate-slow-drift" style={{ animationDuration: '45s' }} />
+        
+        {/* Subtle Grid Overlay */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #76b900 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
       {/* Sidebar */}
@@ -151,6 +158,32 @@ export default function App() {
         </div>
 
         <div className="p-4 border-t border-white/5">
+          <div className="glass-card p-4 space-y-3">
+            <div className="flex items-center gap-2 text-xs text-[#76b900]">
+              <User className="w-3 h-3" />
+              <span className="font-bold italic uppercase tracking-tighter">Developer info</span>
+            </div>
+            <div className="space-y-2">
+              <a 
+                href="https://github.com/manisai901" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors group"
+              >
+                <Github className="w-3.5 h-3.5 group-hover:text-[#76b900]" />
+                <span className="truncate">manisai901</span>
+                <ExternalLink className="w-2.5 h-2.5 ml-auto opacity-0 group-hover:opacity-100" />
+              </a>
+              <a 
+                href="mailto:manikantasaivootla@gmail.com" 
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors group"
+              >
+                <Mail className="w-3.5 h-3.5 group-hover:text-[#76b900]" />
+                <span className="truncate">manikantasaivootla@gmail.com</span>
+              </a>
+            </div>
+          </div>
+
           <div className="glass-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-xs text-[#76b900]">
               <Info className="w-3 h-3" />

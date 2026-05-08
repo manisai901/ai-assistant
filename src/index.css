@@ -31,3 +31,14 @@
 .glass-card {
   @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
 }
+
+@keyframes slow-drift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(5%, 5%) rotate(5deg); }
+  66% { transform: translate(-2%, 8%) rotate(-3deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.animate-slow-drift {
+  animation: slow-drift 25s ease-in-out infinite;
+}
