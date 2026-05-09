@@ -5,11 +5,13 @@ A specialized, professional-grade platform designed for engineers to generate pr
 ## 🛠 Features for Engineers
 
 - **Specialized Expert Modes**:
+  - **General Assistant**: Your all-purpose AI for normal questions and brainstorming.
   - **Docker Expert**: Multi-stage builds, optimization, and security best practices.
   - **Terraform Expert**: Modular IaC for AWS, Azure, and GCP.
   - **Kubernetes Master**: High-availability manifests and Helm chart blueprints.
   - **GitHub Actions Specialist**: Efficient, secure CI/CD YAML workflows.
   - **DevOps Strategist**: High-level architectural planning and GitOps flows.
+- **Improved Mobile Experience**: Fully responsive interface with drawer-based tool selection for engineering on the go.
 - **Production-Ready Output**: Generates code templates following industry standards instead of generic chat.
 - **Interactive Code Console**:
   - **Syntax Highlighting**: Real-time formatting for dozens of languages.

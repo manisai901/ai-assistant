@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { jsPDF } from "jspdf";
 import { 
   Send, 
   Bot, 
@@ -25,7 +26,11 @@ import {
   Copy,
   Download,
   Check,
-  Zap
+  Zap,
+  Menu,
+  X,
+  MessageSquare,
+  FileDown
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -34,7 +39,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type ExpertType = "docker" | "terraform" | "kubernetes" | "github-actions" | "cicd";
+type ExpertType = "docker" | "terraform" | "kubernetes" | "github-actions" | "cicd" | "general";
 
 interface Expert {
   id: ExpertType;
@@ -48,16 +53,28 @@ interface Expert {
 
 const EXPERTS: Expert[] = [
   {
+    id: "general",
+    name: "General Assistant",
+    icon: MessageSquare,
+    color: "#ffffff",
+    description: "Your all-purpose assistant for questions, thoughts, and brainstorming.",
+    prompt: "You are a highly capable AI assistant. You can help with general questions, brainstorming, writing, and any personal thoughts. Be helpful, concise, and clear.",
+    templates: [
+      { label: "Brainstorm Ideas", prompt: "Help me brainstorm 5 creative ideas for a new web application." },
+      { label: "Explain a Concept", prompt: "Can you explain quantum computing in simple terms?" },
+      { label: "Draft an Email", prompt: "Help me draft a professional email to my manager about a project update." }
+    ]
+  },
+  {
     id: "docker",
     name: "Docker Expert",
     icon: Box,
     color: "#0db7ed",
     description: "Expert in containerization, Dockerfiles, and multi-stage builds.",
-    prompt: "You are a Senior Docker Specialist. Your goal is to provide production-grade Dockerfiles, docker-compose.yml files, and containerization strategies. Always follow best practices: use small base images (alpine/distroless), optimize layer caching, avoid running as root, and use multi-stage builds. Provide code that is ready for production.",
+    prompt: "You are a Senior Docker Specialist. Your goal is to provide production-grade Dockerfiles, docker-compose.yml files, and containerization strategies. Always follow best practices: use small base images (alpine/distroless), optimize layer caching, avoid running as root, and use multi-stage builds.",
     templates: [
       { label: "Node.js Multi-stage", prompt: "Create a production-ready multi-stage Dockerfile for a Node.js Express application." },
-      { label: "Docker Compose Stack", prompt: "Generate a docker-compose.yml for a MERN stack with Nginx as a reverse proxy." },
-      { label: "Python Alpine", prompt: "Create a minimized Python Dockerfile using Alpine for a FastAPI app." }
+      { label: "Docker Compose Stack", prompt: "Generate a docker-compose.yml for a MERN stack with Nginx as a reverse proxy." }
     ]
   },
   {
@@ -66,11 +83,10 @@ const EXPERTS: Expert[] = [
     icon: Cloud,
     color: "#844FBA",
     description: "IaC specialist for AWS, Azure, GCP, and reusable modules.",
-    prompt: "You are a Principal Cloud Architect specializing in Terraform. Your code should be modular, secure, and follow the principle of least privilege. Always include variables.tf, main.tf, and outputs.tf structures. Focus on AWS/Azure/GCP best practices and state management.",
+    prompt: "You are a Principal Cloud Architect specializing in Terraform. Your code should be modular, secure, and follow the principle of least privilege. Always include variables.tf, main.tf, and outputs.tf structures.",
     templates: [
       { label: "AWS VPC & Subnets", prompt: "Generate Terraform code for a highly available AWS VPC with public and private subnets." },
-      { label: "S3 Bucket Policy", prompt: "Create a secure S3 bucket with versioning and encryption enabled." },
-      { label: "GCP Cloud Run", prompt: "Generate Terraform files to deploy a container to GCP Cloud Run." }
+      { label: "S3 Bucket Policy", prompt: "Create a secure S3 bucket with versioning and encryption enabled." }
     ]
   },
   {
@@ -79,11 +95,10 @@ const EXPERTS: Expert[] = [
     icon: Layers,
     color: "#326ce5",
     description: "Master of orchestrating containers with K8s manifests and Helm.",
-    prompt: "You are a Kubernetes Engineer. Provide well-structured YAML manifests (Deployments, Services, ConfigMaps, Secrets, Ingress). Follow security standards: use resource limits/requests, liveness/readiness probes, and NetworkPolicies. Explain why certain configurations are used.",
+    prompt: "You are a Kubernetes Engineer. Provide well-structured YAML manifests (Deployments, Services, ConfigMaps, Secrets, Ingress). Follow security standards: use resource limits/requests.",
     templates: [
       { label: "HA Deployment", prompt: "Create a Kubernetes Deployment manifest with 3 replicas, HPA, and resource limits." },
-      { label: "Ingress Controller", prompt: "Generate an Nginx Ingress resource with TLS configuration." },
-      { label: "Helm Chart Shell", prompt: "Show me the folder structure and main templates for a standard Helm chart." }
+      { label: "Ingress Controller", prompt: "Generate an Nginx Ingress resource with TLS configuration." }
     ]
   },
   {
@@ -92,24 +107,10 @@ const EXPERTS: Expert[] = [
     icon: Github,
     color: "#2088ff",
     description: "Automate your workflows with efficient CI/CD pipelines.",
-    prompt: "You are a GitHub Actions Automation Specialist. Design efficient YAML workflows for CI/CD. Use official actions, implement caching, environment secrets, and matrix builds. Ensure workflows are fast and secure.",
+    prompt: "You are a GitHub Actions Automation Specialist. Design efficient YAML workflows for CI/CD. Use official actions, implement caching, and environment secrets.",
     templates: [
       { label: "CI for Node.js", prompt: "Generate a GitHub Action workflow that runs tests and lints on every push." },
-      { label: "Docker Build & Push", prompt: "Create a workflow to build a Docker image and push it to GHCR on tags." },
-      { label: "CD to AWS/Azure", prompt: "Show a deployment workflow using OIDC for secure cloud access." }
-    ]
-  },
-  {
-    id: "cicd",
-    name: "CI/CD Visionary",
-    icon: Repeat,
-    color: "#76b900",
-    description: "Holistic CI/CD design, SLSA, and automated testing strategies.",
-    prompt: "You are a DevOps Strategist. focus on the big picture of CI/CD. provide strategies for canary deployments, blue-green releases, and semantic versioning. Your advice should cover security, speed, and reliability of the entire lifecycle.",
-    templates: [
-      { label: "Canary Deployment", prompt: "Explain and provide a strategy for Canary Deployments using Argo Rollouts." },
-      { label: "GitOps Workflow", prompt: "Design a GitOps architectural flow using Flux or ArgoCD." },
-      { label: "Security Scanning", prompt: "Integrate Trivy and Snyk scanning into a standard CI pipeline." }
+      { label: "Docker Build & Push", prompt: "Create a workflow to build a Docker image and push it to GHCR on tags." }
     ]
   }
 ];
@@ -172,6 +173,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize with expert welcome
@@ -180,7 +182,7 @@ export default function App() {
       {
         id: "welcome",
         role: "assistant",
-        content: `**Welcome to the NVIDIA AI DevOps Platform.**\n\nI am currently operating in **${currentExpert.name}** mode. ${currentExpert.description}\n\nHow can I build your infrastructure today?`
+        content: `**Welcome to the NVIDIA AI Assistant.**\n\nI am currently operating in **${currentExpert.name}** mode. ${currentExpert.description}\n\nHow can I build your infrastructure today?`
       }
     ]);
   }, [currentExpert]);
@@ -193,13 +195,13 @@ export default function App() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const handleCopy = (text: string, id: string) => {
+  const handleCopy = useCallback((text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
+  }, []);
 
-  const handleDownload = (text: string, filename: string) => {
+  const handleDownload = useCallback((text: string, filename: string) => {
     const element = document.createElement("a");
     const file = new Blob([text], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
@@ -207,7 +209,68 @@ export default function App() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-  };
+  }, []);
+
+  const handleExport = useCallback(() => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(118, 185, 0); // NVIDIA Green
+    doc.text("DevOps Studio", 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Expert Mode: ${currentExpert.name}`, 20, yPos);
+    yPos += 5;
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, yPos);
+    yPos += 15;
+
+    messages.forEach((msg) => {
+      // Check for page break before role
+      if (yPos > doc.internal.pageSize.getHeight() - 30) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Role
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      if (msg.role === "user") {
+        doc.setTextColor(59, 130, 246); // Blue-500
+        doc.text("ENGINEER", 20, yPos);
+      } else if (msg.role === "assistant") {
+        doc.setTextColor(118, 185, 0); // NVIDIA Green
+        doc.text("NVIDIA AI", 20, yPos);
+      } else {
+        doc.setTextColor(239, 68, 68); // Red-500
+        doc.text("SYSTEM ERROR", 20, yPos);
+      }
+      yPos += 6;
+
+      // Content
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(31, 41, 55); // Gray-800
+      
+      const lines = doc.splitTextToSize(msg.content.replace(/[^\x00-\x7F]/g, ""), pageWidth - 40);
+      lines.forEach((line: string) => {
+        if (yPos > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(line, 20, yPos);
+        yPos += 6;
+      });
+      
+      yPos += 10;
+    });
+
+    doc.save(`devops-studio-chat-${Date.now()}.pdf`);
+  }, [messages, currentExpert]);
 
   const handleSubmit = async (userPrompt?: string) => {
     const textToSubmit = userPrompt || input;
@@ -222,6 +285,7 @@ export default function App() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    if (isSidebarOpen) setIsSidebarOpen(false);
 
     try {
       const response = await fetch("/api/chat", {
@@ -261,8 +325,6 @@ export default function App() {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        
-        // Keep the potentially incomplete last line in the buffer
         buffer = lines.pop() || "";
         
         for (const line of lines) {
@@ -281,7 +343,7 @@ export default function App() {
                 ));
               }
             } catch (e) {
-              console.warn("Failed to parse SSE chunk:", trimmedLine, e);
+              console.warn("SSE parse error", e);
             }
           }
         }
@@ -292,7 +354,7 @@ export default function App() {
         {
           id: (Date.now() + 1).toString(),
           role: "error",
-          content: `Error: ${error.message}. Please verify your NVIDIA_API_KEY.`,
+          content: `Error: ${error.message}. Please check your NVIDIA_API_KEY.`,
         },
       ]);
     } finally {
@@ -300,29 +362,25 @@ export default function App() {
     }
   };
 
-    const CodeBlock = useCallback(({ node, inline, className, children, ...props }: any) => {
-      const match = /language-(\w+)/.exec(className || "");
-      const language = match ? match[1] : "text";
-      const code = String(children).replace(/\n$/, "");
-      
-      // We need a stable ID for the copy button, but we don't have blockId here easily
-      // So we'll use the code hash or content as a key for isCopied check
-      // For simplicity, we just pass down to CodeBlockInternal
-      
-      return !inline ? (
-        <CodeBlockInternal 
-          language={language} 
-          code={code} 
-          onCopy={handleCopy} 
-          onDownload={handleDownload}
-          isCopied={copiedId !== null && copiedId.length > 0} // Simplification: any copy shows as copied briefly
-        />
-      ) : (
-        <code className="bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-[#76b900]" {...props}>
-          {children}
-        </code>
-      );
-    }, [copiedId, handleCopy, handleDownload]);
+  const CodeBlock = useCallback(({ node, inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || "");
+    const language = match ? match[1] : "text";
+    const code = String(children).replace(/\n$/, "");
+    
+    return !inline ? (
+      <CodeBlockInternal 
+        language={language} 
+        code={code} 
+        onCopy={handleCopy} 
+        onDownload={handleDownload}
+        isCopied={copiedId !== null} 
+      />
+    ) : (
+      <code className="bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-[#76b900]" {...props}>
+        {children}
+      </code>
+    );
+  }, [copiedId, handleCopy, handleDownload]);
 
   return (
     <div className="flex h-screen bg-[#0b0c10] font-sans text-gray-100 overflow-hidden relative selection:bg-[#76b900]/30 selection:text-white">
@@ -333,44 +391,49 @@ export default function App() {
           style={{ backgroundColor: currentExpert.color }}
         />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
-        <div 
-          className="absolute inset-0 opacity-[0.05]" 
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '50px 50px' }} 
-        />
       </div>
 
-      {/* Sidebar Tool Selection */}
-      <aside className="w-80 border-r border-white/5 bg-black/40 backdrop-blur-2xl hidden lg:flex flex-col z-20">
-        <div className="p-8 border-b border-white/5">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#76b900] flex items-center justify-center shadow-[0_0_30px_rgba(118,185,0,0.3)]">
-              <Cpu className="text-black w-7 h-7" />
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 w-80 border-r border-white/5 bg-black/60 backdrop-blur-3xl z-40 lg:relative lg:translate-x-0 transition-transform duration-300 flex flex-col",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-[#76b900] flex items-center justify-center">
+              <Cpu className="text-black w-6 h-6" />
             </div>
             <div>
-              <h1 className="font-bold text-xl tracking-tight text-white leading-none">DevOps NIM</h1>
-              <p className="text-[10px] text-[#76b900] font-mono mt-1 font-bold uppercase tracking-wider">NVIDIA AI PLATFORM</p>
+              <h1 className="font-bold text-lg text-white leading-none">DevOps Studio</h1>
+              <p className="text-[10px] text-[#76b900] font-mono mt-1 uppercase tracking-wider">Powered by NIM</p>
             </div>
           </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-gray-400">
+            <X size={20} />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
+        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
           <div>
-            <p className="px-4 text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Engineering Experts</p>
+            <p className="px-4 text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Select Mode</p>
             <div className="space-y-1.5">
               {EXPERTS.map((expert) => (
                 <button
                   key={expert.id}
-                  onClick={() => setCurrentExpert(expert)}
+                  onClick={() => {
+                    setCurrentExpert(expert);
+                    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                  }}
                   className={cn(
                     "w-full group flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-300",
                     currentExpert.id === expert.id 
-                      ? "bg-white/10 border border-white/10 shadow-lg" 
-                      : "hover:bg-white/5 border border-transparent hover:border-white/5"
+                      ? "bg-white/10 border border-white/10" 
+                      : "hover:bg-white/5 border border-transparent"
                   )}
                 >
                   <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300",
-                    currentExpert.id === expert.id ? "bg-white/10" : "bg-white/5"
+                    "w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 bg-white/5",
+                    currentExpert.id === expert.id && "bg-white/10"
                   )}>
                     <expert.icon 
                       className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" 
@@ -390,7 +453,7 @@ export default function App() {
           </div>
 
           <div className="pt-2">
-            <p className="px-4 text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Quick Templates</p>
+            <p className="px-4 text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Quick Starts</p>
             <div className="grid grid-cols-1 gap-2 px-2">
               {currentExpert.templates.map((template, idx) => (
                 <button
@@ -406,25 +469,11 @@ export default function App() {
           </div>
         </div>
 
-        <div className="p-6 mt-auto space-y-4">
-          <div className="glass-card p-4 space-y-3 bg-[#76b900]/5 border-[#76b900]/10">
-            <div className="flex items-center gap-2 text-[10px] text-[#76b900] font-bold uppercase tracking-widest">
-              <ShieldCheck className="w-3.5 h-3.5" />
-               Enterprise Ready
-            </div>
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              Generating production-style templates with NVIDIA NIM performance.
-            </p>
-          </div>
-          
-          <div className="flex items-center justify-between px-2">
+        <div className="p-6 border-t border-white/5 space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex gap-4">
-              <a href="https://github.com/manisai901" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-white transition-colors">
-                <Github size={18} />
-              </a>
-              <a href="mailto:manikantasaivootla@gmail.com" className="text-gray-500 hover:text-white transition-colors">
-                <Mail size={18} />
-              </a>
+              <a href="https://github.com/manisai901" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-white"><Github size={18} /></a>
+              <a href="mailto:manikantasaivootla@gmail.com" className="text-gray-500 hover:text-white"><Mail size={18} /></a>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -434,51 +483,44 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Studio Area */}
-      <main className="flex-1 flex flex-col z-20 bg-black/10">
-        {/* Top Header */}
-        <header className="h-24 border-b border-white/5 flex items-center justify-between px-10 bg-black/20 backdrop-blur-md">
-          <div className="flex items-center gap-6">
-            <div className="lg:hidden w-10 h-10 rounded-xl bg-[#76b900] flex items-center justify-center">
-              <Cpu className="text-black w-6 h-6" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <currentExpert.icon className="w-5 h-5" style={{ color: currentExpert.color }} />
-                <h2 className="text-xl font-bold tracking-tight">{currentExpert.name}</h2>
+      {/* Main Area */}
+      <main className="flex-1 flex flex-col min-w-0 z-20">
+        <header className="h-20 border-b border-white/5 flex items-center justify-between px-6 md:px-10 bg-black/20 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <button
+               onClick={() => setIsSidebarOpen(true)}
+               className="lg:hidden p-2 rounded-lg hover:bg-white/5 text-gray-400"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex w-8 h-8 rounded-lg bg-white/10 items-center justify-center">
+                <currentExpert.icon className="w-4 h-4" style={{ color: currentExpert.color }} />
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
-                <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5">MODE: PROD_GENERATOR</span>
-                <span className="w-1 h-1 rounded-full bg-gray-500" />
-                <span>NEMOTRON-120B-A12B</span>
-              </div>
+              <h2 className="text-lg font-bold tracking-tight truncate">{currentExpert.name}</h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
-               onClick={() => {
-                 setMessages([{
-                   id: "welcome",
-                   role: "assistant",
-                   content: `Expert mode reset. How can I assist with your **${currentExpert.name}** tasks?`
-                 }]);
-               }}
+               onClick={() => setMessages([{ id: "msg-123", role: "assistant", content: `Expert console reset. Operating in **${currentExpert.name}** mode.` }])}
                className="p-2.5 rounded-xl hover:bg-white/5 text-gray-500 hover:text-red-400 transition-all"
-               title="Clear Console"
+               title="Clear"
             >
               <Trash2 className="w-5 h-5" />
             </button>
-            <div className="h-8 w-px bg-white/10" />
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#76b900] text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#76b900]/20">
-              <FileCode className="w-4 h-4" />
-              Export
+            <div className="h-6 w-px bg-white/10 hidden sm:block" />
+            <button 
+              onClick={handleExport}
+              className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[#76b900] text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#76b900]/20"
+            >
+              <FileDown className="w-4 h-4" />
+              <span className="hidden sm:inline">Export PDF</span>
             </button>
           </div>
         </header>
 
-        {/* Console / Chat Output */}
-        <div className="flex-1 overflow-y-auto px-6 py-10 md:px-12 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto px-4 md:px-12 py-10">
           <div className="max-w-4xl mx-auto space-y-10">
             <AnimatePresence mode="popLayout">
               {messages.map((m) => (
@@ -486,30 +528,18 @@ export default function App() {
                   key={m.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    "flex flex-col gap-3",
-                    m.role === "user" ? "items-end" : "items-start"
-                  )}
+                  className={cn("flex flex-col gap-3", m.role === "user" ? "items-end" : "items-start")}
                 >
                   <div className={cn(
                     "flex items-center gap-3 text-[10px] font-mono tracking-widest font-bold mb-1 uppercase",
                     m.role === "user" ? "flex-row-reverse text-blue-400" : "text-[#76b900]"
                   )}>
-                    {m.role === "user" ? (
-                      <>
-                        <User className="w-3 h-3" />
-                        ENGINEER_CMD
-                      </>
-                    ) : (
-                      <>
-                        <Bot className="w-3 h-3" />
-                        AI_OUTPUT :: {currentExpert.id.replace('-', '_')}
-                      </>
-                    )}
+                    {m.role === "user" ? <User size={12} /> : <Bot size={12} />}
+                    {m.role === "user" ? "Engineer" : "NVIDIA_AI"}
                   </div>
 
                   <div className={cn(
-                    "max-w-[90%] p-6 rounded-2xl leading-relaxed text-sm md:text-base selection:bg-[#76b900]/60",
+                    "max-w-[95%] sm:max-w-[90%] p-5 md:p-6 rounded-2xl text-sm md:text-base leading-relaxed",
                     m.role === "assistant" 
                       ? "bg-white/5 border border-white/5 text-gray-200" 
                       : m.role === "error"
@@ -521,17 +551,9 @@ export default function App() {
                       components={{
                         code: CodeBlock,
                         p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-6 mt-8 text-white">{children}</h1>,
                         h2: ({ children }) => <h2 className="text-xl font-bold mb-4 mt-6 text-white border-b border-white/5 pb-2">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-lg font-bold mb-3 mt-4 text-white text-[#76b900]/80">{children}</h3>,
                         ul: ({ children }) => <ul className="list-disc ml-6 mb-4 space-y-2">{children}</ul>,
                         ol: ({ children }) => <ol className="list-decimal ml-6 mb-4 space-y-2">{children}</ol>,
-                        li: ({ children }) => <li className="text-gray-300">{children}</li>,
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-[#76b900] bg-white/5 px-4 py-2 italic text-gray-400 my-4 rounded-r-lg">
-                            {children}
-                          </blockquote>
-                        ),
                       }}
                     >
                       {m.content}
@@ -541,78 +563,62 @@ export default function App() {
               ))}
             </AnimatePresence>
             
-            {isLoading && !messages[messages.length-1].content && (
+            {(isLoading || (messages.length > 0 && messages[messages.length-1].content === "")) && (
               <div className="flex flex-col items-start gap-4">
                 <div className="flex items-center gap-3 text-[10px] font-mono tracking-widest font-bold text-[#76b900] uppercase">
-                  <Bot className="w-3 h-3 animate-pulse" />
-                  EXECUTING_REQUEST...
+                  <Bot className="w-3 h-3 animate-spin" />
+                  Generating...
                 </div>
                 <div className="w-full max-w-[400px] h-32 bg-white/5 rounded-2xl animate-pulse border border-white/5" />
               </div>
             )}
-            <div ref={messagesEndRef} className="h-20" />
+            <div ref={messagesEndRef} className="h-10" />
           </div>
         </div>
 
-        {/* Input Control Center */}
-        <div className="p-8 md:p-12 pt-0">
-          <div className="max-w-4xl mx-auto">
+        <div className="p-4 md:p-10 pt-0">
+          <div className="max-w-4xl mx-auto relative group">
             <form 
               onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
-              className="relative group lg:shadow-[0_-50px_100px_-20px_rgba(0,0,0,0.5)]"
+              className="relative p-2 glass-card transition-all duration-300 focus-within:ring-1 focus-within:ring-[#76b900]/30 bg-black/60 border-white/10 overflow-hidden"
             >
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#76b900]/0 via-[#76b900]/20 to-[#76b900]/0 rounded-3xl blur-xl transition-all duration-1000 group-focus-within:opacity-100 opacity-0" />
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder={isLoading ? "AI is typing..." : "Message your specialized assistant..."}
+                className="w-full bg-transparent border-none focus:ring-0 px-4 py-4 resize-none h-20 md:h-24 text-sm md:text-base outline-none scrollbar-hide text-white placeholder-gray-600"
+              />
               
-              <div className="relative glass-card flex flex-col p-2 transition-all duration-300 focus-within:ring-1 focus-within:ring-[#76b900]/30 bg-black/60 border-white/10 overflow-hidden">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit();
-                    }
-                  }}
-                  placeholder={`Describe the ${currentExpert.name.split(' ')[0]} configuration you need...`}
-                  className="w-full bg-transparent border-none focus:ring-0 px-6 py-4 resize-none h-24 md:h-28 text-sm md:text-base outline-none scrollbar-hide text-white placeholder-gray-600"
-                />
-                
-                <div className="flex items-center justify-between px-3 pb-2">
-                  <div className="flex items-center gap-2 px-3">
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 text-[10px] text-gray-500 font-mono">
-                      <Terminal size={12} />
-                      SHIFT+ENTER FOR NEW LINE
-                    </div>
-                  </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={isLoading || !input.trim()}
-                    className={cn(
-                      "flex items-center gap-3 px-6 py-3 rounded-2xl transition-all duration-300 font-bold text-sm",
-                      input.trim() && !isLoading
-                        ? "bg-[#76b900] text-black shadow-lg shadow-[#76b900]/30 scale-100 hover:scale-105 active:scale-95"
-                        : "bg-white/5 text-gray-500 cursor-not-allowed scale-100"
-                    )}
-                  >
-                    <Send className="w-4 h-4" />
-                    GENERATE
-                  </button>
+              <div className="flex items-center justify-between px-3 pb-2">
+                <div className="hidden sm:flex items-center gap-2 px-3 text-[10px] text-gray-500 font-mono">
+                  <Terminal size={12} />
+                  ENTER TO SEND
                 </div>
+                
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className={cn(
+                    "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 font-bold text-sm",
+                    input.trim() && !isLoading
+                      ? "bg-[#76b900] text-black shadow-lg shadow-[#76b900]/20 hover:scale-105 active:scale-95"
+                      : "bg-white/5 text-gray-600"
+                  )}
+                >
+                  <Send className="w-4 h-4" />
+                  GENERATE
+                </button>
               </div>
             </form>
-            
-            <div className="mt-4 flex justify-center">
-              <p className="text-[10px] text-gray-600 font-medium tracking-[0.1em] uppercase">
-                Powered by NVIDIA NIM Cloud Acceleration & Grace Hopper GPUs
-              </p>
-            </div>
           </div>
         </div>
       </main>
-
-      {/* Mobile Expert Selector Modal Placeholder */}
-      {/* (In a real pro app we'd add a floating button for mobile screens to open the sidebar) */}
     </div>
   );
 }
