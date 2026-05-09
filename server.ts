@@ -15,9 +15,9 @@ async function startServer() {
 
   app.use(express.json());
 
-  // NVIDIA NIM API Proxy
+  // NVIDIA NIM API Proxy with Streaming Support
   app.post("/api/chat", async (req, res) => {
-    const { messages } = req.body;
+    const { messages, stream = true } = req.body;
     const apiKey = process.env.NVIDIA_API_KEY;
 
     if (!apiKey) {
@@ -38,8 +38,8 @@ async function startServer() {
           messages,
           temperature: 0.5,
           top_p: 1,
-          max_tokens: 1024,
-          stream: false, // Simplifying for this version
+          max_tokens: 2048,
+          stream,
         }),
       });
 
@@ -49,11 +49,35 @@ async function startServer() {
         throw new Error(errorData.error?.message || "Failed to fetch from NVIDIA API");
       }
 
-      const data = await response.json();
-      res.json(data);
+      if (stream) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("Body reader not available");
+
+        const decoder = new TextDecoder();
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          res.write(chunk);
+        }
+        res.end();
+      } else {
+        const data = await response.json();
+        res.json(data);
+      }
     } catch (error: any) {
       console.error("Server Error:", error);
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message || "Internal Server Error" });
+      } else {
+        res.end();
+      }
     }
   });
 

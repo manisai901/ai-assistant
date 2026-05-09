@@ -1,45 +1,71 @@
-# NVIDIA AI Assistant (Nemotron-3 Super 120B)
+# NVIDIA AI DevOps Assistant 🚀
 
-A modern, high-performance AI chat interface powered by NVIDIA's state-of-the-art Nemotron-3 Super 120B model via NVIDIA NIM APIs.
+A specialized, professional-grade platform designed for engineers to generate production-ready infrastructure-as-code (IaC), container configurations, and automation workflows. Powered by **NVIDIA Nemotron-3 Super 120B** via the NVIDIA NIM API.
 
-## 🚀 Architecture Overview
+## 🛠 Features for Engineers
 
-This application follows a robust Full-Stack SPA (Single Page Application) architecture:
+- **Specialized Expert Modes**:
+  - **Docker Expert**: Multi-stage builds, optimization, and security best practices.
+  - **Terraform Expert**: Modular IaC for AWS, Azure, and GCP.
+  - **Kubernetes Master**: High-availability manifests and Helm chart blueprints.
+  - **GitHub Actions Specialist**: Efficient, secure CI/CD YAML workflows.
+  - **DevOps Strategist**: High-level architectural planning and GitOps flows.
+- **Production-Ready Output**: Generates code templates following industry standards instead of generic chat.
+- **Interactive Code Console**:
+  - **Syntax Highlighting**: Real-time formatting for dozens of languages.
+  - **One-Click Copy**: Instantly copy code blocks to your clipboard.
+  - **Instant Download**: Download generated configs as files (e.g., `.tf`, `.yaml`, `Dockerfile`).
+- **Modern Streaming Interface**: See logic unfold in real-time with smooth server-sent events.
+- **High-Performance UI**: 
+  - Glassmorphism design with a "cool" technological aesthetic.
+  - Sub-pixel background animations optimized for low CPU usage.
+  - Fully mobile-responsive layout.
 
-### 1. Frontend (The User Interface)
-- **React & TypeScript**: Modern functional components for high-speed interactivity.
-- **Tailwind CSS**: Utility-first styling for a sleek, "NVIDIA-inspired" dark aesthetic.
-- **Framer Motion**: Smooth, low-overhead UI animations (background drifts, message transitions) designed to be pleasant without impacting performance.
-- **Lucide Icons**: Crisp, vector-based iconography.
+## 📐 Architecture
 
-### 2. Backend (The Secure API Proxy)
-- **Node.js & Express**: A lightweight server that serves the static frontend and acts as a gateway.
-- **API Proxy Pattern**: Instead of calling NVIDIA directly from the browser (which would expose your API key), the frontend talks to our Express server. The server then securely calls NVIDIA NIM, keeping your credentials safe.
-- **Environment Management**: Utilizes secure environment variables for API key injection.
+```mermaid
+graph TD
+    A[Engineer / Web UI] -->|React + SSE| B[Node.js API Gateway]
+    B -->|Environment Secrets| C[NVIDIA NIM Cloud]
+    C -->|Nemotron-3 120B| B
+    B -->|Streaming Response| A
+    
+    subgraph "Infrastructure"
+        D[Docker Engine]
+        E[Kubernetes Cluster]
+        F[Terraform Provisioner]
+    end
+    
+    A -.->|Export Config| D
+    A -.->|Export Config| E
+    A -.->|Export Config| F
+```
 
-### 3. AI Core
-- **NVIDIA NIM (Nemotron-3 Super 120B)**: Leverages the massive 120 billion parameter model optimized for logic, coding, and creative tasks.
-- **Grace Hopper Optimized**: Performance-tuned for NVIDIA's latest enterprise architectures.
+## 🚀 Deployment Instructions
 
-## ✨ Key Features
+### 1. Repository Setup
+Clone the code to your machine and push to GitHub:
+```bash
+git init
+git add .
+git commit -m "Initialize DevOps Assistant"
+git remote add origin YOUR_GITHUB_URL
+git push -u origin main
+```
 
-- **Pleasant Visual Environment**: A "cool" dark theme with a very slow, CPU-friendly background animation that mimics fluid dynamics.
-- **Glassmorphism UI**: High-end glass-effect cards and blur filters for a premium feel.
-- **Real-time Interaction**: Non-blocking message streaming simulations for a fluid chat experience.
-- **Developer Info**: Integrated sidebar with GitHub and contact details for transparency.
-- **Session Management**: Easy "New Session" capabilities to reset context.
+### 2. Render.com Deployment
+1. Connect your GitHub to [Render](https://render.com).
+2. Create a **New Web Service**.
+3. **Build Command**: `npm install && npm run build`
+4. **Start Command**: `npm start`
+5. **Environment Variables**:
+   - `NVIDIA_API_KEY`: Your key from [build.nvidia.com](https://build.nvidia.com).
+   - `NODE_ENV`: `production`
 
-## 🛠️ How It Works
+## 👨‍💻 Developer
+- **GitHub**: [manisai901](https://github.com/manisai901)
+- **Email**: manikantasaivootla@gmail.com
 
-1. **User input**: The user types a message in the text area.
-2. **Request handling**: The message is sent to the local `/api/chat` endpoint.
-3. **Secure relay**: The Express server retrieves the `NVIDIA_API_KEY` from the secure environment and forwards the request to `integrate.api.nvidia.com`.
-4. **Processing**: The NVIDIA NIM model processes the history and generates a context-aware response.
-5. **UI Update**: The response is relayed back to the React app, which statefully updates the chat history and triggers smooth entrance animations.
+---
 
-## 📦 Deployment
-
-Optimized for **Render.com** using:
-- **Build**: `npm install && npm run build`
-- **Start**: `npm start`
-- **Port**: 3000 (standard entry)
+*Powered by NVIDIA Grace Hopper Architecture.*
