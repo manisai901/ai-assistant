@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { 
   Send, 
   Bot, 
@@ -211,66 +212,38 @@ export default function App() {
     document.body.removeChild(element);
   }, []);
 
-  const handleExport = useCallback(() => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
+  const handleExport = useCallback(async () => {
+    const chatContainer = document.getElementById("chat-container");
+    if (!chatContainer) return;
 
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(118, 185, 0); // NVIDIA Green
-    doc.text("DevOps Studio", 20, yPos);
-    yPos += 10;
-
-    doc.setFontSize(10);
-    doc.setTextColor(128, 128, 128);
-    doc.text(`Expert Mode: ${currentExpert.name}`, 20, yPos);
-    yPos += 5;
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, yPos);
-    yPos += 15;
-
-    messages.forEach((msg) => {
-      // Check for page break before role
-      if (yPos > doc.internal.pageSize.getHeight() - 30) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      // Role
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      if (msg.role === "user") {
-        doc.setTextColor(59, 130, 246); // Blue-500
-        doc.text("ENGINEER", 20, yPos);
-      } else if (msg.role === "assistant") {
-        doc.setTextColor(118, 185, 0); // NVIDIA Green
-        doc.text("NVIDIA AI", 20, yPos);
-      } else {
-        doc.setTextColor(239, 68, 68); // Red-500
-        doc.text("SYSTEM ERROR", 20, yPos);
-      }
-      yPos += 6;
-
-      // Content
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(31, 41, 55); // Gray-800
-      
-      const lines = doc.splitTextToSize(msg.content.replace(/[^\x00-\x7F]/g, ""), pageWidth - 40);
-      lines.forEach((line: string) => {
-        if (yPos > doc.internal.pageSize.getHeight() - 20) {
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(line, 20, yPos);
-        yPos += 6;
+    try {
+      setIsLoading(true);
+      const canvas = await html2canvas(chatContainer, {
+        backgroundColor: "#0b0c10",
+        scale: 2,
+        useCORS: true,
+        logging: false,
       });
-      
-      yPos += 10;
-    });
 
-    doc.save(`devops-studio-chat-${Date.now()}.pdf`);
-  }, [messages, currentExpert]);
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width / 2, canvas.height / 2]
+      });
+
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`devops-studio-chat-${Date.now()}.pdf`);
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      // Fallback to basic PDF if canvas fails
+      const doc = new jsPDF();
+      doc.text("Export failed, please try again.", 20, 20);
+      doc.save(`export-error-${Date.now()}.pdf`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messages]);
 
   const handleSubmit = async (userPrompt?: string) => {
     const textToSubmit = userPrompt || input;
@@ -383,15 +356,25 @@ export default function App() {
   }, [copiedId, handleCopy, handleDownload]);
 
   return (
-    <div className="flex h-screen bg-[#0b0c10] font-sans text-gray-100 overflow-hidden relative selection:bg-[#76b900]/30 selection:text-white">
-      {/* Dynamic Background */}
+    <div className="flex h-screen bg-[#050505] font-sans text-gray-100 overflow-hidden relative selection:bg-red-600/30 selection:text-white carbon-fiber">
+      {/* Dynamic Background Effects */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div 
-          className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full opacity-10 blur-[120px] animate-slow-drift" 
-          style={{ backgroundColor: currentExpert.color }}
-        />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+        <div className="absolute inset-0 webbing-pattern opacity-40 mix-blend-overlay" />
+        <div className="absolute inset-0 suit-mesh opacity-20" />
+        <div className="lightning-flash animate-lightning" />
+        
+        {/* Subtle Pulse Glow over the background logo */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-red-600/10 blur-[120px] rounded-full animate-pulse-glow" />
+        
+        {/* Cinematic Atmospheric Lighting */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-red-600/5 via-transparent to-blue-600/5" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] mix-blend-soft-light" />
       </div>
+
+      {/* Floating Lightning Bolts */}
+      <div className="fixed top-20 left-10 text-yellow-400 opacity-20 animate-pulse text-4xl blur-sm">⚡</div>
+      <div className="fixed bottom-20 right-10 text-blue-400 opacity-20 animate-pulse delay-700 text-4xl blur-sm">⚡</div>
+      <div className="fixed top-1/2 right-20 text-red-500 opacity-10 animate-float text-6xl blur-md">⚡</div>
 
       {/* Sidebar */}
       <aside className={cn(
@@ -404,8 +387,11 @@ export default function App() {
               <Cpu className="text-black w-6 h-6" />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-white leading-none">DevOps Studio</h1>
-              <p className="text-[10px] text-[#76b900] font-mono mt-1 uppercase tracking-wider">Powered by NIM</p>
+              <div className="flex items-center gap-2">
+                <h1 className="font-bold text-lg text-white leading-none">DevOps Studio</h1>
+                <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse" />
+              </div>
+              <p className="text-[10px] text-[#76b900] font-mono mt-1 uppercase tracking-wider">Fast-Gen Enabled</p>
             </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-gray-400">
@@ -520,7 +506,7 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 md:px-12 py-10">
+        <div id="chat-container" className="flex-1 overflow-y-auto px-4 md:px-12 py-10">
           <div className="max-w-4xl mx-auto space-y-10">
             <AnimatePresence mode="popLayout">
               {messages.map((m) => (
